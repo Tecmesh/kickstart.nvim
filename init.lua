@@ -107,6 +107,9 @@ vim.o.number = true
 --  Experiment for yourself to see if you like it!
 -- vim.o.relativenumber = true
 
+-- Enable mouse mode, can be useful for resizing splits for example!
+vim.o.mouse = 'a'
+
 -- Limit Tabs Spaces
 vim.opt.tabstop = 2
 vim.opt.softtabstop = 2
@@ -115,9 +118,6 @@ vim.opt.shiftwidth = 2
 vim.opt.autoindent = true
 vim.opt.smartindent = true
 vim.opt.wrap = false
-
--- Enable mouse mode, can be useful for resizing splits for example!
-vim.o.mouse = 'a'
 
 -- Don't show the mode, since it's already in the status line
 vim.o.showmode = false
@@ -197,10 +197,10 @@ vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagn
 vim.keymap.set('t', '<Esc><Esc>', '<C-\\><C-n>', { desc = 'Exit terminal mode' })
 
 -- TIP: Disable arrow keys in normal mode
-vim.keymap.set('n', '<left>', '<cmd>echo "Use h to move!!"<CR>')
-vim.keymap.set('n', '<right>', '<cmd>echo "Use l to move!!"<CR>')
-vim.keymap.set('n', '<up>', '<cmd>echo "Use k to move!!"<CR>')
-vim.keymap.set('n', '<down>', '<cmd>echo "Use j to move!!"<CR>')
+-- vim.keymap.set('n', '<left>', '<cmd>echo "Use h to move!!"<CR>')
+-- vim.keymap.set('n', '<right>', '<cmd>echo "Use l to move!!"<CR>')
+-- vim.keymap.set('n', '<up>', '<cmd>echo "Use k to move!!"<CR>')
+-- vim.keymap.set('n', '<down>', '<cmd>echo "Use j to move!!"<CR>')
 
 -- Keybinds to make split navigation easier.
 --  Use CTRL+<hjkl> to switch between windows
@@ -590,11 +590,7 @@ require('lazy').setup({
           ---@param bufnr? integer some lsp support methods only in specific files
           ---@return boolean
           local function client_supports_method(client, method, bufnr)
-            if vim.fn.has 'nvim-0.11' == 1 then
-              return client:supports_method(method, bufnr)
-            else
-              return client.supports_method(method, { bufnr = bufnr })
-            end
+            return client:supports_method(method, bufnr)
           end
 
           -- The following two autocommands are used to highlight references of the
@@ -710,6 +706,35 @@ require('lazy').setup({
             },
           },
         },
+        pyright = {
+          -- No specific override settings needed here usually, but you can add them:
+          -- settings = {
+          --   python = {
+          --     analysis = {
+          --       typeCheckingMode = "basic", -- "off", "basic", "strict"
+          --       autoSearchPaths = true,
+          --       diagnosticMode = "workspace",
+          --       useLibraryCodeForTypes = true,
+          --     },
+          --   },
+          -- },
+        },
+        ['ruff-lsp'] = {
+          -- For ruff, you often configure it via `pyproject.toml` or `ruff.toml`
+          -- in your project. These are example settings if you want to set global
+          -- defaults here or override project settings.
+          -- init_options = {
+          --   settings = {
+          --     lint = {
+          --       select = {"E", "F", "W", "I", "UP", "PL"}, -- Common useful rules
+          --       ignore = {"E501"}, -- Example: ignore line too long if black/ruff formatter handles it
+          --     },
+          --     format = {
+          --       -- args = {"--line-length", "88"} -- If you want ruff to format
+          --     }
+          --   }
+          -- }
+        },
       }
 
       -- Ensure the servers and tools above are installed
@@ -728,12 +753,16 @@ require('lazy').setup({
       local ensure_installed = vim.tbl_keys(servers or {})
       vim.list_extend(ensure_installed, {
         'stylua', -- Used to format Lua code
+        'ruff', -- For ruff CLI (used by conform.nvim and ruff_lsp might also use it)
+        'black', -- Python formatter (if you prefer it or want it as a fallback)
+        'debugpy', -- Python debugger (optional, but good to have)
       })
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
 
       require('mason-lspconfig').setup {
         ensure_installed = {}, -- explicitly set to an empty table (Kickstart populates installs via mason-tool-installer)
         automatic_installation = false,
+        automatic_enable = true,
         handlers = {
           function(server_name)
             local server = servers[server_name] or {}
@@ -780,8 +809,7 @@ require('lazy').setup({
       end,
       formatters_by_ft = {
         lua = { 'stylua' },
-        -- Conform can also run multiple formatters sequentially
-        -- python = { "isort", "black" },
+        python = { 'ruff_format', 'black' },
         --
         -- You can use 'stop_after_first' to run the first available formatter from the list
         -- javascript = { "prettierd", "prettier", stop_after_first = true },
@@ -987,7 +1015,7 @@ require('lazy').setup({
   --
   -- require 'kickstart.plugins.debug',
   require 'kickstart.plugins.indent_line',
-  require 'kickstart.plugins.lint',
+  -- require 'kickstart.plugins.lint',
   require 'kickstart.plugins.autopairs',
   require 'kickstart.plugins.neo-tree',
   require 'kickstart.plugins.gitsigns', -- adds gitsigns recommend keymaps
